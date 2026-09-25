@@ -253,56 +253,7 @@
   </style>
 </head>
 <body>
-  @php
-    $siteEvents = collect();
-    $views = 0;
-    $clicks = 0;
-    $conversionRate = 0;
-    $retentionFormatted = '00:00';
-    
-    if ($selectedSite) {
-        $siteEvents = $events->where('site_name', $selectedSite);
-        $views = $siteEvents->where('type', 'view')->count();
-        $clicks = $siteEvents->where('type', 'click')->count();
-        
-        $ctaClicks = $siteEvents->where('type', 'cta_click')->count();
-        if ($ctaClicks == 0) { // Fallback
-            $ctaClicks = $siteEvents->where('type', 'click')->filter(function($e) {
-                return $e->content && stripos($e->content, 'cta') !== false;
-            })->count();
-        }
-        
-        if ($views > 0) {
-            $conversionRate = ($ctaClicks / $views) * 100;
-        }
-
-        // Calculate Retention (Average Time on Site by session)
-        $retentionSeconds = 0;
-        $sessionDurations = $siteEvents->whereNotNull('session_id')->groupBy('session_id')->map(function($eventsForSession) {
-            if ($eventsForSession->count() > 1) {
-                $sorted = $eventsForSession->sortBy('created_at')->values();
-                $totalDiff = 0;
-                for ($i = 1; $i < $sorted->count(); $i++) {
-                    $diff = $sorted[$i - 1]->created_at->diffInSeconds($sorted[$i]->created_at);
-                    if ($diff < 1800) {
-                        $totalDiff += $diff;
-                    }
-                }
-                return min($totalDiff, 7200);
-            }
-            $dur = $eventsForSession->avg('duration') ?? 0;
-            if ($dur > 86400) { $dur = $dur / 1000; }
-            if ($dur > 86400) { $dur = 0; }
-            return min($dur, 7200);
-        })->filter(function($dur) { return $dur > 0; });
-        
-        if ($sessionDurations->count() > 0) {
-            $retentionSeconds = $sessionDurations->average();
-        }
-        $retentionFormatted = sprintf('%02d:%02d', floor($retentionSeconds / 60), $retentionSeconds % 60);
-    }
-  @endphp
-
+  
   <div class="app">
     <aside>
       <div class="brand">
@@ -319,19 +270,16 @@
         <a href="#visibilidad">Visibilidad <span>04</span></a>
         <a href="#captura">Captura de valor <span>05</span></a>
         <a href="#sistema">Sistema técnico <span>06</span></a>
-        @if($user->role === 'master')
-        <a href="#admin" style="margin-top: 15px; border: 1px dashed var(--line);">Admin <span>07</span></a>
-        <a href="#stripe-settings" style="border: 1px dashed var(--line); border-top: none;">Cobros Stripe <span style="{{ ($stripeConfigs['enabled'] ?? true) ? '' : 'color: #f87171;' }}">{{ ($stripeConfigs['enabled'] ?? true) ? '08' : 'OFF' }}</span></a>
-        @endif
-      </nav>
+                <a href="#admin" style="margin-top: 15px; border: 1px dashed var(--line);">Admin <span>07</span></a>
+        <a href="#stripe-settings" style="border: 1px dashed var(--line); border-top: none;">Cobros Stripe <span>08</span></a>
+              </nav>
       <div class="aside-card">
         <b>Lectura activa</b>
-        <p>Usuario actual: {{ $user->name }} ({{ strtoupper($user->role) }}). Este dashboard no muestra datos aislados. Traduce tráfico y rendimiento técnico en una lectura ejecutiva.</p>
+        <p>Usuario actual: Admin User (MASTER). Este dashboard no muestra datos aislados. Traduce tráfico y rendimiento técnico en una lectura ejecutiva.</p>
       </div>
       
-      <form action="{{ route('logout') }}" method="POST" style="margin-top: 20px;">
-        @csrf
-        <button type="submit" class="btn btn-danger" style="width:100%;">Cerrar Sesión</button>
+      <form action="http://127.0.0.1:8000/logout" method="POST" style="margin-top: 20px;">
+        <input type="hidden" name="_token" value="CS0sLUPQzFj69GyddDdYSahzGMSLiQE0i98AYRTm" autocomplete="off">        <button type="submit" class="btn btn-danger" style="width:100%;">Cerrar Sesión</button>
       </form>
     </aside>
 
@@ -344,110 +292,80 @@
         </div>
         <div style="display:flex; flex-direction:column; align-items:flex-end; gap:10px;">
           <div class="client-pill">
-            <span style="font-family:ui-monospace, Menlo, monospace; color:var(--text);">{{ ucfirst(\Carbon\Carbon::now()->locale('es')->monthName) }} {{ \Carbon\Carbon::now()->year }}</span>
-            · 
             Cliente: 
-            <form action="{{ route('dashboard') }}" method="GET" id="siteForm" style="margin:0; display:flex;">
-              @php
-                $siteLen = $selectedSite ? strlen($selectedSite) : 10;
-              @endphp
-              <select name="site" onchange="document.getElementById('siteForm').submit()" style="font-family:ui-monospace, Menlo, monospace; font-size:12px; color:var(--acid); width: {{ $siteLen + 3 }}ch; padding-right:10px;">
-                @foreach($sites as $site)
-                  <option value="{{ $site }}" {{ request('site') == $site ? 'selected' : '' }}>{{ $site }}</option>
-                @endforeach
-                @if(count($sites) == 0)
-                  <option value="">Sin sitios</option>
-                @endif
-              </select>
+            <form action="http://127.0.0.1:8000/dashboard" method="GET" id="siteForm" style="margin:0;">
+              <select name="site" onchange="document.getElementById('siteForm').submit()">
+                                  <option value="Test" selected>Test</option>
+                                  <option value="ucatem" >ucatem</option>
+                                  <option value="http://localhost:8001" >http://localhost:8001</option>
+                                  <option value="http://127.0.0.1:8001" >http://127.0.0.1:8001</option>
+                                  <option value="localhost" >localhost</option>
+                                              </select>
             </form>
+            · Mayo 2026
           </div>
-          @if($selectedSite && ($user->role === 'master' || $user->role === 'editor'))
-          <form action="{{ route('events.clear', $selectedSite) }}" method="POST" onsubmit="return confirm('¿Seguro que deseas eliminar todos los eventos de {{ $selectedSite }}?');" style="margin:0;">
-            @csrf
-            @method('DELETE')
-            <button type="submit" class="btn btn-danger" style="font-size:11px; padding: 4px 10px;">Purgar Datos del Sitio</button>
+                    <form action="http://127.0.0.1:8000/events/site/Test" method="POST" onsubmit="return confirm('¿Seguro que deseas eliminar todos los eventos de Test?');" style="margin:0;">
+            <input type="hidden" name="_token" value="CS0sLUPQzFj69GyddDdYSahzGMSLiQE0i98AYRTm" autocomplete="off">            <input type="hidden" name="_method" value="DELETE">            <button type="submit" class="btn btn-danger" style="font-size:11px; padding: 4px 10px;">Purgar Datos del Sitio</button>
           </form>
-          @endif
-        </div>
+                  </div>
       </header>
 
-      @if(session('success'))
-        <div class="alert"><span class="dot"></span><p class="small" style="color:var(--acid);">{{ session('success') }}</p></div>
-      @endif
-      @if($errors->any())
-        <div class="alert"><span class="dot red"></span><p class="small" style="color:var(--red);">{{ $errors->first() }}</p></div>
-      @endif
-
-      @if(!$selectedSite)
-        <div class="alert" style="margin-bottom: 26px;"><span class="dot amber"></span><p class="small" style="color:var(--amber);">Aún no se registran sitios o interacciones activas. Conecta el seguimiento en tu sitio web para comenzar a capturar métricas ejecutivas en vivo.</p></div>
-      @endif
-
+            
+      
       <section id="estado" class="grid grid-3">
         <div class="card" style="grid-column:span 2">
           <div class="label">Estado de la marca</div>
           <div class="score-wrap">
-            <div class="score" style="background:conic-gradient(var(--acid) 0 {{ $healthScore }}%, #252525 {{ $healthScore }}% 100%);"><div><strong>{{ $healthScore }}</strong><span>salud digital</span></div></div>
+            <div class="score" style="background:conic-gradient(var(--acid) 0 70%, #252525 70% 100%);"><div><strong>70</strong><span>salud digital</span></div></div>
             <div>
-              <p class="reading">{{ $healthReading }}</p>
-              <p class="small">{{ $healthDetail }}</p>
-              <div class="trend">{{ $healthTrend }}</div>
+              <p class="reading">La marca está siendo vista, pero hay margen para convertir mejor esa atención.</p>
+              <p class="small">El tráfico fluye de manera estable, pero ciertas zonas de conversión y formularios necesitan optimización para no perder leads.</p>
+              <div class="trend">+100% tráfico 7d · Interacción 100% · Conversión 0%</div>
             </div>
           </div>
         </div>
         <div class="card">
           <div class="label">Lectura semanal</div>
-          <p class="reading" style="font-size:22px">Semana {{ $weekNumber }}</p>
-          <p class="small">{{ $weeklyText }}</p>
-          <div class="bar"><i style="width:{{ $weeklyProgress }}%"></i></div>
+          <p class="reading" style="font-size:22px">Semana 1</p>
+          <p class="small">En la semana 1, la actividad muestra ritmo activo (+100% tráfico en 7d). La prioridad es consolidar la retención.</p>
+          <div class="bar"><i style="width:70%"></i></div>
         </div>
       </section>
 
       <section class="grid grid-4">
         <!-- REAL VIEWS -->
-        <div class="card"><div class="label">Tráfico (Vistas)</div><div class="metric">{{ $selectedSite ? number_format($views) : '--' }}</div><p class="trend">▲ Real</p><p class="small">La atención capturada.</p></div>
+        <div class="card"><div class="label">Tráfico (Vistas)</div><div class="metric">1</div><p class="trend">▲ Real</p><p class="small">La atención capturada.</p></div>
         <!-- REAL CLICKS -->
-        <div class="card"><div class="label">Interacción (Clics)</div><div class="metric">{{ $selectedSite ? number_format($clicks) : '--' }}</div><p class="trend">▲ Real</p><p class="small">El usuario explora más.</p></div>
+        <div class="card"><div class="label">Interacción (Clics)</div><div class="metric">1</div><p class="trend">▲ Real</p><p class="small">El usuario explora más.</p></div>
         <!-- REAL CONVERSION -->
-        <div class="card"><div class="label">Conversión (CTA)</div><div class="metric">{{ $selectedSite ? number_format($conversionRate, 1) . '%' : '--' }}</div><p class="trend">▲ Real</p><p class="small">Vistas que terminan en CTA.</p></div>
+        <div class="card"><div class="label">Conversión (CTA)</div><div class="metric">0.0%</div><p class="trend">▲ Real</p><p class="small">Vistas que terminan en CTA.</p></div>
         <!-- REAL RETENTION -->
-        <div class="card"><div class="label">Retención</div><div class="metric">{{ $selectedSite ? $retentionFormatted : '--:--' }}</div><p class="trend warn">● Real</p><p class="small">Tiempo promedio por sesión.</p></div>
+        <div class="card"><div class="label">Retención</div><div class="metric">06:49</div><p class="trend warn">● Real</p><p class="small">Tiempo promedio por sesión.</p></div>
       </section>
 
       <section id="feed-real" class="grid grid-2">
         <div class="card" style="grid-column: span 2">
           <div class="label" style="color:var(--acid);">Telemetría en Tiempo Real</div>
-          <h3 class="module-title">Últimos Eventos Capturados ({{ $selectedSite ?? 'Ningún sitio seleccionado' }})</h3>
+          <h3 class="module-title">Últimos Eventos Capturados (Test)</h3>
           <div style="max-height: 250px; overflow-y:auto; border-radius:12px; border:1px solid var(--line); background:var(--panel-2); margin-top: 15px;">
             <table class="table" style="margin:0;">
-                @if($selectedSite)
-                    @foreach($siteEvents->take(100) as $event)
-                    <tr>
-                        <td style="font-size:12px; color:#666; width: 140px;">{{ $event->created_at->format('M d, H:i:s') }}</td>
+                                                        <tr>
+                        <td style="font-size:12px; color:#666; width: 140px;">Aug 19, 00:21:22</td>
                         <td style="width: 100px;">
-                            @php
-                                $c = 'white';
-                                switch($event->type){
-                                    case 'click': $c = 'var(--acid)'; break;
-                                    case 'reload': $c = 'var(--blue)'; break;
-                                    case 'external_link': $c = 'var(--amber)'; break;
-                                    case 'cta_click': $c = '#00ff9c'; break;
-                                    case 'form_start': $c = 'lightblue'; break;
-                                    case 'form_submit': $c = 'lightgreen'; break;
-                                }
-                            @endphp
-                            <span style="color: {{ $c }}; font-weight:bold; letter-spacing: 1px;">{{ strtoupper($event->type) }}</span>
+                                                        <span style="color: var(--acid); font-weight:bold; letter-spacing: 1px;">CLICK</span>
                         </td>
-                        <td style="font-family:monospace; font-size:11px; text-align: left;">Sesión: {{ substr($event->session_id ?? '---', 0, 8) }}</td>
-                        <td style="font-size:12px; color:var(--text); text-align: left;">{{ $event->content ?? '' }}</td>
+                        <td style="font-family:monospace; font-size:11px; text-align: left;">Sesión: 123</td>
+                        <td style="font-size:12px; color:var(--text); text-align: left;"></td>
                     </tr>
-                    @endforeach
-                    @if($siteEvents->count() == 0)
-                    <tr><td colspan="4" style="text-align:center; padding: 30px; font-style: italic;">Esperando nuevas interacciones y actividad en tiempo real...</td></tr>
-                    @endif
-                @else
-                    <tr><td colspan="4" style="text-align:center; padding: 30px; font-style: italic;">No hay un sitio seleccionado para mostrar eventos.</td></tr>
-                @endif
-            </table>
+                                        <tr>
+                        <td style="font-size:12px; color:#666; width: 140px;">Aug 19, 00:14:33</td>
+                        <td style="width: 100px;">
+                                                        <span style="color: white; font-weight:bold; letter-spacing: 1px;">VIEW</span>
+                        </td>
+                        <td style="font-family:monospace; font-size:11px; text-align: left;">Sesión: 123</td>
+                        <td style="font-size:12px; color:var(--text); text-align: left;"></td>
+                    </tr>
+                                                                    </table>
           </div>
         </div>
       </section>
@@ -457,21 +375,20 @@
           <div class="label">Comportamiento del usuario</div>
           <h3 class="module-title">Zonas de atención</h3>
           <div class="heatmap" id="user-heatmap-container">
-            @if(count($heatmapData) == 0)
-                <span class="hot h1"></span><span class="hot h2"></span><span class="hot h3"></span>
-            @endif
-          </div>
-          <p class="small">El usuario concentra su mayor atención e interacción real en: <strong style="color:var(--text); font-family:monospace;">{{ $topClickedContent ?? 'bloques principales' }}</strong>.</p>
+                      </div>
+          <p class="small">El usuario concentra su mayor atención e interacción real en: <strong style="color:var(--text); font-family:monospace;">ninguna zona (esperando clics)</strong>.</p>
         </div>
         <div class="card">
           <div class="label">Recorrido real del usuario</div>
           <h3 class="module-title">Del interés a la acción</h3>
           <div class="funnel">
-            @foreach($funnelData as $step)
-            <div class="step"><span>{{ $step['label'] }} <small style="color:#666; font-family:monospace;">({{ number_format($step['count']) }})</small></span> <strong>{{ $step['percent'] }}%</strong></div>
-            @endforeach
-          </div>
-          <div class="alert"><span class="dot amber"></span><p class="small">{!! $funnelInsight !!}</p></div>
+                        <div class="step"><span>Tráfico / Vistas del sitio <small style="color:#666; font-family:monospace;">(1)</small></span> <strong>100%</strong></div>
+                        <div class="step"><span>Interacción y exploración <small style="color:#666; font-family:monospace;">(1)</small></span> <strong>100%</strong></div>
+                        <div class="step"><span>Clic en CTA o Botones <small style="color:#666; font-family:monospace;">(0)</small></span> <strong>0%</strong></div>
+                        <div class="step"><span>Inicia formulario <small style="color:#666; font-family:monospace;">(0)</small></span> <strong>0%</strong></div>
+                        <div class="step"><span>Envía datos (Conversión) <small style="color:#666; font-family:monospace;">(0)</small></span> <strong>0%</strong></div>
+                      </div>
+          <div class="alert"><span class="dot amber"></span><p class="small"><b>Insight:</b> Embudo operando activamente con una conversión global del 0%. Se recomienda monitorear de cerca el costo por lead.</p></div>
         </div>
       </section>
 
@@ -479,25 +396,14 @@
         <div class="card">
           <div class="label">Fricción</div>
           <h3 class="module-title">Lugares donde la marca falla</h3>
-          @if($selectedSite && count($frictionData) > 0)
-              @foreach($frictionData as $alert)
-              <div class="alert"><span class="dot {{ $alert['type'] == 'danger' ? 'red' : 'amber' }}"></span><p class="small">{{ $alert['message'] }}</p></div>
-              @endforeach
-          @else
-              <div class="alert"><span class="dot"></span><p class="small">No hay datos suficientes de fricción para este sitio.</p></div>
-          @endif
-        </div>
+                        <div class="alert"><span class="dot"></span><p class="small">No hay datos suficientes de fricción para este sitio.</p></div>
+                  </div>
         <div class="card" style="grid-column:span 2">
           <div class="label">Regiones</div>
           <h3 class="module-title">Distribución geográfica (Timezone)</h3>
           <table class="table">
-            @foreach($regionData as $region => $count)
-            <tr><td>{{ $region }}</td><td>{{ $count }} sesiones</td></tr>
-            @endforeach
-            @if(empty($regionData))
-            <tr><td colspan="2">Sin datos de región registrados.</td></tr>
-            @endif
-          </table>
+                                    <tr><td colspan="2">Sin datos de región registrados.</td></tr>
+                      </table>
         </div>
       </section>
 
@@ -506,25 +412,42 @@
           <div class="label">Actividad reciente</div>
           <h3 class="module-title">Tráfico diario de los últimos 7 días</h3>
           <div class="fake-chart" style="align-items: flex-end; gap: 10px;">
-            @php
-                $maxDaily = count($activityChart) > 0 ? max($activityChart) : 1;
-                if ($maxDaily == 0) $maxDaily = 1;
-            @endphp
-            @foreach($activityChart as $dLabel => $dCount)
-                @php
-                    $hPercent = round(($dCount / $maxDaily) * 100);
-                    if ($hPercent < 8) $hPercent = 8;
-                @endphp
-                <div style="display:flex; flex-direction:column; align-items:center; flex:1; height:100%; justify-content:flex-end;">
-                  <span style="font-size: 11px; font-family:monospace; color: var(--text); margin-bottom:4px;">{{ $dCount }}</span>
-                  <i style="height:{{ $hPercent }}%; width: 100%; background: linear-gradient(180deg, rgba(0,255,156,.95), rgba(0,255,156,.14)); border-radius: 6px 6px 0 0;" title="{{ $dCount }} eventos"></i>
-                  <span style="font-size: 10px; color: #666; margin-top:4px;">{{ $dLabel }}</span>
+                                                        <div style="display:flex; flex-direction:column; align-items:center; flex:1; height:100%; justify-content:flex-end;">
+                  <span style="font-size: 11px; font-family:monospace; color: var(--text); margin-bottom:4px;">0</span>
+                  <i style="height:8%; width: 100%; background: linear-gradient(180deg, rgba(0,255,156,.95), rgba(0,255,156,.14)); border-radius: 6px 6px 0 0;" title="0 eventos"></i>
+                  <span style="font-size: 10px; color: #666; margin-top:4px;">13/08</span>
                 </div>
-            @endforeach
-            @if(empty($activityChart))
-                <p style="font-size: 12px; color: #666; align-self:center;">Sin actividad reciente.</p>
-            @endif
-          </div>
+                                            <div style="display:flex; flex-direction:column; align-items:center; flex:1; height:100%; justify-content:flex-end;">
+                  <span style="font-size: 11px; font-family:monospace; color: var(--text); margin-bottom:4px;">0</span>
+                  <i style="height:8%; width: 100%; background: linear-gradient(180deg, rgba(0,255,156,.95), rgba(0,255,156,.14)); border-radius: 6px 6px 0 0;" title="0 eventos"></i>
+                  <span style="font-size: 10px; color: #666; margin-top:4px;">14/08</span>
+                </div>
+                                            <div style="display:flex; flex-direction:column; align-items:center; flex:1; height:100%; justify-content:flex-end;">
+                  <span style="font-size: 11px; font-family:monospace; color: var(--text); margin-bottom:4px;">0</span>
+                  <i style="height:8%; width: 100%; background: linear-gradient(180deg, rgba(0,255,156,.95), rgba(0,255,156,.14)); border-radius: 6px 6px 0 0;" title="0 eventos"></i>
+                  <span style="font-size: 10px; color: #666; margin-top:4px;">15/08</span>
+                </div>
+                                            <div style="display:flex; flex-direction:column; align-items:center; flex:1; height:100%; justify-content:flex-end;">
+                  <span style="font-size: 11px; font-family:monospace; color: var(--text); margin-bottom:4px;">0</span>
+                  <i style="height:8%; width: 100%; background: linear-gradient(180deg, rgba(0,255,156,.95), rgba(0,255,156,.14)); border-radius: 6px 6px 0 0;" title="0 eventos"></i>
+                  <span style="font-size: 10px; color: #666; margin-top:4px;">16/08</span>
+                </div>
+                                            <div style="display:flex; flex-direction:column; align-items:center; flex:1; height:100%; justify-content:flex-end;">
+                  <span style="font-size: 11px; font-family:monospace; color: var(--text); margin-bottom:4px;">0</span>
+                  <i style="height:8%; width: 100%; background: linear-gradient(180deg, rgba(0,255,156,.95), rgba(0,255,156,.14)); border-radius: 6px 6px 0 0;" title="0 eventos"></i>
+                  <span style="font-size: 10px; color: #666; margin-top:4px;">17/08</span>
+                </div>
+                                            <div style="display:flex; flex-direction:column; align-items:center; flex:1; height:100%; justify-content:flex-end;">
+                  <span style="font-size: 11px; font-family:monospace; color: var(--text); margin-bottom:4px;">0</span>
+                  <i style="height:8%; width: 100%; background: linear-gradient(180deg, rgba(0,255,156,.95), rgba(0,255,156,.14)); border-radius: 6px 6px 0 0;" title="0 eventos"></i>
+                  <span style="font-size: 10px; color: #666; margin-top:4px;">18/08</span>
+                </div>
+                                            <div style="display:flex; flex-direction:column; align-items:center; flex:1; height:100%; justify-content:flex-end;">
+                  <span style="font-size: 11px; font-family:monospace; color: var(--text); margin-bottom:4px;">2</span>
+                  <i style="height:100%; width: 100%; background: linear-gradient(180deg, rgba(0,255,156,.95), rgba(0,255,156,.14)); border-radius: 6px 6px 0 0;" title="2 eventos"></i>
+                  <span style="font-size: 10px; color: #666; margin-top:4px;">19/08</span>
+                </div>
+                                  </div>
           <p class="small" style="margin-top:14px;">El consumo diario refleja el volumen real de interacciones registradas y permite proyectar días pico para lanzamiento de campañas.</p>
         </div>
         <div class="card">
@@ -544,31 +467,14 @@
           <div class="label">Captura de valor</div>
           <h3 class="module-title">Páginas con más tiempo de retención</h3>
           <div class="fake-chart" style="align-items: flex-end; gap: 8px;">
-            @php
-                $maxDuration = count($captureData) > 0 ? max($captureData) : 1;
-                if ($maxDuration == 0) $maxDuration = 1;
-            @endphp
-            @foreach($captureData as $page => $duration)
-                @php
-                    $heightPercent = ($duration / $maxDuration) * 100;
-                    if ($heightPercent < 5) $heightPercent = 5;
-                @endphp
-                <div style="display:flex; flex-direction:column; align-items:center; width: 100%; height:100%; justify-content:flex-end;">
-                  <span style="font-size: 10px; color: var(--text); margin-bottom:4px;">{{ round($duration) }}s</span>
-                  <i style="height:{{ $heightPercent }}%; width: 100%; background: var(--acid); border-radius: 4px 4px 0 0;" title="{{ $page }}"></i>
-                  <span style="font-size: 9px; color: #666; margin-top:4px; text-overflow:ellipsis; overflow:hidden; white-space:nowrap; max-width: 100%;">{{ substr(basename(parse_url($page, PHP_URL_PATH) ?? $page), 0, 10) ?: 'home' }}</span>
-                </div>
-            @endforeach
-            @if(empty($captureData))
-                <p style="font-size: 12px; color: #666; align-self:center;">Sin datos de captura (tiempo en página) para mostrar.</p>
-            @endif
-          </div>
+                                                    <p style="font-size: 12px; color: #666; align-self:center;">Sin datos de captura (tiempo en página) para mostrar.</p>
+                      </div>
         </div>
         <div class="card">
           <div class="label">Leads (Envíos de Formulario)</div>
-          <div class="metric">{{ number_format($leadsCount) }}</div>
-          <p class="trend {{ $leadsTrendClass }}">{{ $leadsTrendText }}</p>
-          <p class="small">{{ $leadsText }}</p>
+          <div class="metric">0</div>
+          <p class="trend warn">● Estable en este ciclo</p>
+          <p class="small">Los leads se contabilizan en tiempo real al registrar eventos de envío de formulario en el sitio.</p>
         </div>
       </section>
 
@@ -587,19 +493,17 @@
         <div class="card">
           <div class="label">Próxima decisión automática</div>
           <h3 class="module-title">Acción recomendada</h3>
-          <p class="reading" style="font-size:22px">{{ $nextDecisionTitle }}</p>
-          <p class="small">{{ $nextDecisionText }}</p>
+          <p class="reading" style="font-size:22px">Reducir fricción en puntos de conversión antes de escalar.</p>
+          <p class="small">La atención ya se captura con éxito. Para maximizar el ROI, optimizar la estructura de los formularios y simplificar los llamados a la acción (CTA).</p>
           <div class="alert"><span class="dot"></span><p class="small"><b>Prioridad Unlock:</b> convertir lectura y métricas en intervención directa.</p></div>
         </div>
       </section>
-      @if($user->role === 'master')
-      <section id="admin" class="grid grid-2" style="margin-top: 60px;">
+            <section id="admin" class="grid grid-2" style="margin-top: 60px;">
         <div class="card">
           <div class="label">Gestión de Accesos (Master)</div>
           <h3 class="module-title">Crear Nuevo Usuario</h3>
-          <form action="{{ route('users.store') }}" method="POST">
-            @csrf
-            <div class="form-group">
+          <form action="http://127.0.0.1:8000/users" method="POST">
+            <input type="hidden" name="_token" value="CS0sLUPQzFj69GyddDdYSahzGMSLiQE0i98AYRTm" autocomplete="off">            <div class="form-group">
                 <label>Nombre</label>
                 <input type="text" name="name" required>
             </div>
@@ -623,10 +527,12 @@
                 <label>Sitio Asignado (Ignorado si es Master)</label>
                 <select name="site_name">
                   <option value="">-- Sin sitio asignado / Acceso Global (Master) --</option>
-                  @foreach($sites as $availableSite)
-                    <option value="{{ $availableSite }}">{{ $availableSite }}</option>
-                  @endforeach
-                </select>
+                                      <option value="Test">Test</option>
+                                      <option value="ucatem">ucatem</option>
+                                      <option value="http://localhost:8001">http://localhost:8001</option>
+                                      <option value="http://127.0.0.1:8001">http://127.0.0.1:8001</option>
+                                      <option value="localhost">localhost</option>
+                                  </select>
             </div>
             <button type="submit" class="btn">Crear Usuario</button>
           </form>
@@ -643,14 +549,12 @@
                 </tr>
             </thead>
             <tbody>
-                @foreach($users as $u)
-                <tr>
-                <td><strong>{{ $u->name }}</strong><br><span style="font-size:11px;color:#666">{{ $u->email }}</span></td>
-                <td><span style="color:{{ $u->role === 'master' ? 'var(--red)' : 'var(--acid)' }}">{{ strtoupper($u->role) }}</span></td>
-                <td style="font-family:monospace">{{ $u->site_name ?? 'TODOS' }}</td>
+                                <tr>
+                <td><strong>Admin User</strong><br><span style="font-size:11px;color:#666">admin@example.com</span></td>
+                <td><span style="color:var(--red)">MASTER</span></td>
+                <td style="font-family:monospace">TODOS</td>
                 </tr>
-                @endforeach
-            </tbody>
+                            </tbody>
           </table>
         </div>
       </section>
@@ -660,9 +564,8 @@
           <div class="label">Seguridad (Master)</div>
           <h3 class="module-title">Conectar sitio web</h3>
           <p class="small" style="margin-bottom: 15px;">Agrega el dominio de tu sitio (ej. <code>https://mi-sitio.com</code>). Sin '/' al final.</p>
-          <form action="{{ route('domains.store') }}" method="POST">
-            @csrf
-            <div class="form-group">
+          <form action="http://127.0.0.1:8000/domains" method="POST">
+            <input type="hidden" name="_token" value="CS0sLUPQzFj69GyddDdYSahzGMSLiQE0i98AYRTm" autocomplete="off">            <div class="form-group">
                 <label>URL del Dominio</label>
                 <input type="url" name="domain" placeholder="https://..." required>
             </div>
@@ -672,8 +575,7 @@
         <div class="card">
           <div class="label">Configuración Activa</div>
           <h3 class="module-title">Dominios Permitidos</h3>
-          @if(isset($domains) && $domains->count() > 0)
-          <table class="table">
+                    <table class="table">
             <thead>
                 <tr>
                 <th>Dominio</th>
@@ -681,24 +583,33 @@
                 </tr>
             </thead>
             <tbody>
-                @foreach($domains as $d)
-                <tr>
-                <td style="font-family:monospace">{{ $d->domain }}</td>
+                                <tr>
+                <td style="font-family:monospace">http://localhost:8001</td>
                 <td>
-                    <form action="{{ route('domains.destroy', $d->id) }}" method="POST" style="margin:0;display:inline-block">
-                        @csrf
-                        @method('DELETE')
-                        <button type="submit" class="btn btn-danger" style="padding:4px 8px;font-size:11px;" onclick="return confirm('¿Seguro que deseas eliminar este dominio? Dejará de enviar datos.')">Eliminar</button>
+                    <form action="http://127.0.0.1:8000/domains/1" method="POST" style="margin:0;display:inline-block">
+                        <input type="hidden" name="_token" value="CS0sLUPQzFj69GyddDdYSahzGMSLiQE0i98AYRTm" autocomplete="off">                        <input type="hidden" name="_method" value="DELETE">                        <button type="submit" class="btn btn-danger" style="padding:4px 8px;font-size:11px;" onclick="return confirm('¿Seguro que deseas eliminar este dominio? Dejará de enviar datos.')">Eliminar</button>
                     </form>
                 </td>
                 </tr>
-                @endforeach
-            </tbody>
+                                <tr>
+                <td style="font-family:monospace">http://127.0.0.1:8001</td>
+                <td>
+                    <form action="http://127.0.0.1:8000/domains/2" method="POST" style="margin:0;display:inline-block">
+                        <input type="hidden" name="_token" value="CS0sLUPQzFj69GyddDdYSahzGMSLiQE0i98AYRTm" autocomplete="off">                        <input type="hidden" name="_method" value="DELETE">                        <button type="submit" class="btn btn-danger" style="padding:4px 8px;font-size:11px;" onclick="return confirm('¿Seguro que deseas eliminar este dominio? Dejará de enviar datos.')">Eliminar</button>
+                    </form>
+                </td>
+                </tr>
+                                <tr>
+                <td style="font-family:monospace">localhost</td>
+                <td>
+                    <form action="http://127.0.0.1:8000/domains/3" method="POST" style="margin:0;display:inline-block">
+                        <input type="hidden" name="_token" value="CS0sLUPQzFj69GyddDdYSahzGMSLiQE0i98AYRTm" autocomplete="off">                        <input type="hidden" name="_method" value="DELETE">                        <button type="submit" class="btn btn-danger" style="padding:4px 8px;font-size:11px;" onclick="return confirm('¿Seguro que deseas eliminar este dominio? Dejará de enviar datos.')">Eliminar</button>
+                    </form>
+                </td>
+                </tr>
+                            </tbody>
           </table>
-          @else
-          <p class="small" style="color:var(--amber);margin-top:20px;">No hay dominios autorizados registrados. Añade la dirección oficial de tu sitio para habilitar la recepción segura de datos del tablero.</p>
-          @endif
-        </div>
+                  </div>
       </section>
 
       <section id="stripe-settings" class="grid grid-2" style="margin-top: 24px;">
@@ -706,39 +617,28 @@
           <div class="label">Cobros por Suscripción (Master)</div>
           <h3 class="module-title">Configurar Precios y Moneda</h3>
           <p class="small" style="margin-bottom: 15px;">Establece el costo mensual de suscripción exigido a clientes y colaboradores para ingresar a su tablero ejecutivo. Las credenciales registradas aquí tendrán prioridad absoluta en el sistema.</p>
-          <form action="{{ route('admin.stripe.save') }}" method="POST">
-            @csrf
-            <input type="hidden" name="payments_enabled_present" value="1">
-            <div class="form-group" style="margin-bottom: 16px; padding: 12px; background: rgba(255,255,255,0.03); border: 1px solid var(--line); border-radius: 8px;">
-                <label style="display: flex; align-items: center; gap: 10px; cursor: pointer; font-weight: 600; margin: 0;">
-                    <input type="checkbox" name="payments_enabled" value="1" {{ ($stripeConfigs['enabled'] ?? true) ? 'checked' : '' }} style="width: 18px; height: 18px; accent-color: var(--acid); cursor: pointer;">
-                    <span>Habilitar cobros y suscripciones con Stripe</span>
-                </label>
-                <p class="small" style="margin: 6px 0 0 28px; color: var(--text-dim);">
-                    Variable en <code>.env</code>: <code>STRIPE_PAYMENTS_ENABLED={{ ($stripeConfigs['enabled'] ?? true) ? 'true' : 'false' }}</code>. Si se desactiva, los usuarios (editor/viewer) tendrán acceso directo sin requerir suscripción ni pasar por el muro de pago.
-                </p>
-            </div>
-            <div style="display:flex;gap:12px;">
+          <form action="http://127.0.0.1:8000/admin/stripe-config" method="POST">
+            <input type="hidden" name="_token" value="CS0sLUPQzFj69GyddDdYSahzGMSLiQE0i98AYRTm" autocomplete="off">            <div style="display:flex;gap:12px;">
               <div class="form-group" style="flex:2;">
                 <label>Precio Mensual ($)</label>
-                <input type="number" step="0.01" min="0.50" name="subscription_amount" value="{{ $stripeConfigs['subscription_amount'] ?? '29.99' }}" required>
+                <input type="number" step="0.01" min="0.50" name="subscription_amount" value="500.00" required>
               </div>
               <div class="form-group" style="flex:1;">
                 <label>Moneda</label>
-                <input type="text" name="currency" value="{{ strtoupper($stripeConfigs['currency'] ?? 'USD') }}" required maxlength="4" style="text-transform:uppercase;">
+                <input type="text" name="currency" value="MXN" required maxlength="4" style="text-transform:uppercase;">
               </div>
             </div>
             <div class="form-group" style="margin-top:10px;">
                 <label>Llave Pública de Stripe (Publishable Key)</label>
-                <input type="text" name="pk" value="{{ $stripeConfigs['pk'] }}" placeholder="Ingresar clave pública u omitir para usar predeterminada">
+                <input type="text" name="pk" value="" placeholder="Ingresar clave pública u omitir para usar predeterminada">
             </div>
             <div class="form-group">
                 <label>Llave Secreta de Stripe (Secret Key)</label>
-                <input type="password" name="sk" value="{{ $stripeConfigs['sk'] }}" placeholder="Ingresar clave secreta u omitir para usar predeterminada">
+                <input type="password" name="sk" value="" placeholder="Ingresar clave secreta u omitir para usar predeterminada">
             </div>
             <div class="form-group">
                 <label>Secreto de Webhook de Stripe</label>
-                <input type="password" name="webhook_secret" value="{{ $stripeConfigs['webhook_secret'] }}" placeholder="Ingresar secreto de webhook u omitir para usar predeterminada">
+                <input type="password" name="webhook_secret" value="" placeholder="Ingresar secreto de webhook u omitir para usar predeterminada">
             </div>
             <button type="submit" class="btn">Guardar Parámetros de Pago</button>
           </form>
@@ -754,29 +654,21 @@
             <div style="margin-top:15px;background:rgba(255,255,255,0.02);padding:14px;border-radius:8px;border-left:3px solid var(--acid);">
               <div style="font-size:12px;font-weight:600;margin-bottom:4px;color:var(--acid);">ESTATUS ACTUAL DE LA PLATAFORMA DE COBROS:</div>
               <ul style="font-size:12px;margin:0;padding-left:16px;color:#eee;line-height:1.8;">
-                <li><strong>Estado de Cobros:</strong> 
-                  @if($stripeConfigs['enabled'] ?? true)
-                    <span style="color:var(--acid);font-weight:bold;">● ACTIVO (Muro de pago y suscripciones habilitadas)</span>
-                  @else
-                    <span style="color:#f87171;font-weight:bold;">○ DESACTIVADO (Acceso libre a todos los usuarios)</span>
-                  @endif
-                </li>
-                <li><strong>Plan Configurado:</strong> ${{ $stripeConfigs['subscription_amount'] ?? '29.99' }} {{ strtoupper($stripeConfigs['currency'] ?? 'USD') }} / mes</li>
+                <li><strong>Plan Configurado:</strong> $500.00 MXN / mes</li>
                 <li><strong>Periodo de Prueba:</strong> <span style="color:var(--acid);font-weight:bold;">60 días (2 meses gratis) activados automáticamente</span></li>
-                <li><strong>Llave Pública (PK):</strong> {{ !empty($stripeConfigs['pk']) ? 'Configurada (' . substr($stripeConfigs['pk'], 0, 8) . '...)' : 'Usando predeterminada de sistema' }}</li>
-                <li><strong>Llave Secreta (SK):</strong> {{ !empty($stripeConfigs['sk']) ? 'Configurada y activa' : 'Usando predeterminada de sistema' }}</li>
-                <li><strong>Firma Webhook:</strong> {{ !empty($stripeConfigs['webhook_secret']) ? 'Sincronización activa' : 'Usando predeterminado de sistema' }}</li>
+                <li><strong>Llave Pública (PK):</strong> Usando predeterminada de sistema</li>
+                <li><strong>Llave Secreta (SK):</strong> Usando predeterminada de sistema</li>
+                <li><strong>Firma Webhook:</strong> Usando predeterminado de sistema</li>
               </ul>
             </div>
             <p class="small" style="margin-top:15px;color:var(--blue);">
-              💡 <strong>Control en tiempo real:</strong> Puedes activar o desactivar los cobros con la variable <code>STRIPE_PAYMENTS_ENABLED</code> en tu archivo <code>.env</code> o directamente desde este panel.
+              💡 <strong>Control en tiempo real:</strong> Al modificar los parámetros de cobro desde esta consola, los nuevos precios e integraciones entran en vigor de forma instantánea al momento en que se les acaba la prueba.
             </p>
           </div>
         </div>
       </section>
 
-      @endif
-
+      
       <footer>
         Plataforma ejecutiva de inteligencia comercial desarrollada para Cetia Media / Unlock Brands. Monitoreo de Tráfico, Interacción, Embudo de Conversión, Leads y Salud Digital en tiempo real.
       </footer>
@@ -786,7 +678,7 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/heatmap.js/2.0.0/heatmap.min.js"></script>
   <script>
     document.addEventListener('DOMContentLoaded', function() {
-        var heatmapData = @json($heatmapData ?? []);
+        var heatmapData = [{"x":500,"y":500}];
         var container = document.getElementById('user-heatmap-container');
         
         if (heatmapData.length > 0 && container) {

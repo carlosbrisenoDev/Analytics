@@ -11,12 +11,11 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('analytics_metas', function (Blueprint $table) {
+        Schema::create('events', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('site_id')->constrained()->onDelete('cascade');
-            $table->date('date');
-            $table->integer('events')->default(0);
-            $table->integer('conversions')->default(0);
+            $table->string('site_name')->index();
+            $table->string('type', 50)->index();
+            $table->string('ip_address', 45)->nullable();
             $table->timestamps();
         });
     }
@@ -26,6 +25,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('analytics_metas');
+        Schema::dropIfExists('events');
     }
 };

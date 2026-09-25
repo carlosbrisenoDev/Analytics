@@ -13,7 +13,7 @@ class AddSite extends Command
      *
      * @var string
      */
-    protected $signature = 'site:add {name} {domain} {--key=}';
+    protected $signature = 'site:add {name} {domain}';
 
     /**
      * The console command description.
@@ -29,16 +29,13 @@ class AddSite extends Command
     {
         $name = $this->argument('name');
         $domain = $this->argument('domain');
-        $apiKey = $this->option('key') ?: Str::random(32);
 
         $site = Site::create([
             'name' => $name,
             'domain' => $domain,
-            'api_key' => $apiKey,
         ]);
 
         $this->info("Site '{$site->name}' created successfully!");
-        $this->info("API Key: {$site->api_key}");
         
         return Command::SUCCESS;
     }

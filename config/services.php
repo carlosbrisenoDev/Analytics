@@ -35,4 +35,13 @@ return [
         ],
     ],
 
+    'stripe' => [
+        'payments_enabled' => env('STRIPE_PAYMENTS_ENABLED', env('STRIPE_ENABLED', true)),
+        'pk' => env('STRIPE_PK'),
+        'sk' => env('STRIPE_SK'),
+        'webhook_secret' => env('STRIPE_WEBHOOK_SECRET'),
+        'subscription_amount' => env('STRIPE_SUBSCRIPTION_AMOUNT', '500.00'),
+        'currency' => env('STRIPE_CURRENCY', 'MXN'),
+    ],
+
 ];
