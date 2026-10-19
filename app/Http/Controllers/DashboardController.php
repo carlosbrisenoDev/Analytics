@@ -10,6 +10,7 @@ use App\Models\SystemConfig;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Cache;
+use App\Services\IntegrationAuditService;
 
 class DashboardController extends Controller
 {
@@ -95,12 +96,15 @@ class DashboardController extends Controller
             // Capture Data (Top 8 paginas por tiempo de duracion)
             $captureData = $siteEvents->where('type', 'view')
                 ->whereNotNull('duration')
+                ->where('duration', '>', 0)
                 ->groupBy('content')
                 ->map(function ($eventsInPage) {
                     $avg = $eventsInPage->avg('duration') ?? 0;
-                    if ($avg > 86400) { $avg = $avg / 1000; }
-                    if ($avg > 86400) { $avg = 0; }
-                    return min($avg, 7200);
+                    // Normalizar si viene en milisegundos (ej: 4000ms = 4s)
+                    if ($avg > 1800 && ($avg / 1000) <= 1800) {
+                        $avg = $avg / 1000;
+                    }
+                    return min(round($avg), 1800);
                 })
                 ->sortByDesc(function ($avg) { return $avg; })
                 ->take(8)
@@ -127,16 +131,8 @@ class DashboardController extends Controller
                 ->values()
                 ->toArray();
 
-            // Friction Data
-            $viewsByPage = $siteEvents->where('type', 'view')->groupBy('content')->map->count();
-            $clicksByPage = $siteEvents->where('type', 'click')->groupBy('content')->map->count();
-            
-            foreach ($viewsByPage as $page => $views) {
-                $clicks = $clicksByPage->get($page, 0);
-                if ($views > 5 && $clicks == 0) {
-                    $frictionData[] = ['type' => 'danger', 'message' => "La página {$page} tiene tráfico ({$views} vistas) pero 0 interacción (clics)."];
-                }
-            }
+            // Friction Data (Limitado a los 5 puntos más críticos para no desbordar la interfaz)
+            $frictionCandidates = [];
 
             $formStarts = $siteEvents->where('type', 'form_start')->groupBy('content')->map->count();
             $formSubmits = $siteEvents->where('type', 'form_submit')->groupBy('content')->map->count();
@@ -146,10 +142,35 @@ class DashboardController extends Controller
                 if ($starts > 0) {
                     $dropoff = round((($starts - $submits) / $starts) * 100);
                     if ($dropoff > 50) {
-                        $frictionData[] = ['type' => 'danger', 'message' => "Formulario '{$form}' con abandono del {$dropoff}%."];
+                        $frictionCandidates[] = [
+                            'severity' => 1000 + $dropoff,
+                            'type' => 'danger',
+                            'message' => "Formulario '{$form}' con abandono del {$dropoff}%."
+                        ];
                     }
                 }
             }
+
+            $viewsByPage = $siteEvents->where('type', 'view')->groupBy('content')->map->count()->sortDesc();
+            $clicksByPage = $siteEvents->where('type', 'click')->groupBy('content')->map->count();
+            
+            foreach ($viewsByPage as $page => $views) {
+                $clicks = $clicksByPage->get($page, 0);
+                if ($views > 5 && $clicks == 0) {
+                    $frictionCandidates[] = [
+                        'severity' => $views,
+                        'type' => 'danger',
+                        'message' => "La página {$page} tiene tráfico ({$views} vistas) pero 0 interacción (clics)."
+                    ];
+                }
+            }
+
+            usort($frictionCandidates, function ($a, $b) {
+                return $b['severity'] <=> $a['severity'];
+            });
+
+            // Friction Data (Limitado a los 3 puntos más críticos para mantener la proporción de la card)
+            $frictionData = array_slice($frictionCandidates, 0, 3);
 
             // --- CÁLCULOS DINÁMICOS DE CARDS REALES ---
             $totalViews = $siteEvents->where('type', 'view')->count();
@@ -225,30 +246,45 @@ class DashboardController extends Controller
                 $leadsText = "La captación acumula {$leadsCount} conversiones reales. Mantener monitoreado el seguimiento comercial de estos prospectos.";
             }
 
-            // Calculate Retention (Average Time on Site by session)
+            // Calculate Retention (Average Time on Site by session / continuous visit)
             $retentionSeconds = 0;
-            $sessionDurations = $siteEvents->whereNotNull('session_id')->groupBy('session_id')->map(function($eventsForSession) {
-                if ($eventsForSession->count() > 1) {
-                    $sorted = $eventsForSession->sortBy('created_at')->values();
-                    $totalDiff = 0;
+            $allVisits = [];
+
+            foreach ($siteEvents->whereNotNull('session_id')->groupBy('session_id') as $sessionId => $eventsForSession) {
+                $sorted = $eventsForSession->sortBy('created_at')->values();
+                if ($sorted->count() > 1) {
+                    $currentVisitStart = $sorted[0]->created_at;
+                    $currentVisitLast = $sorted[0]->created_at;
+
                     for ($i = 1; $i < $sorted->count(); $i++) {
                         $diff = $sorted[$i - 1]->created_at->diffInSeconds($sorted[$i]->created_at);
-                        // Si la inactividad entre eventos es mayor a 30 minutos (1800s), se ignora ese lapso
-                        if ($diff < 1800) {
-                            $totalDiff += $diff;
+                        if ($diff >= 1800) {
+                            // Salto de más de 30 minutos: se cierra la visita anterior
+                            $visitDuration = $currentVisitStart->diffInSeconds($currentVisitLast);
+                            if ($visitDuration > 0) {
+                                $allVisits[] = min($visitDuration, 1800);
+                            }
+                            $currentVisitStart = $sorted[$i]->created_at;
                         }
+                        $currentVisitLast = $sorted[$i]->created_at;
                     }
-                    return min($totalDiff, 7200);
+                    $visitDuration = $currentVisitStart->diffInSeconds($currentVisitLast);
+                    if ($visitDuration > 0) {
+                        $allVisits[] = min($visitDuration, 1800);
+                    }
+                } elseif ($sorted->count() === 1) {
+                    $dur = $sorted[0]->duration ?? 0;
+                    if ($dur > 1800 && ($dur / 1000) <= 1800) {
+                        $dur = round($dur / 1000);
+                    }
+                    if ($dur > 0) {
+                        $allVisits[] = min($dur, 1800);
+                    }
                 }
-                // Para eventos únicos, usamos la duración enviada por el cliente (a menudo en milisegundos)
-                $dur = $eventsForSession->avg('duration') ?? 0;
-                if ($dur > 86400) { $dur = $dur / 1000; }
-                if ($dur > 86400) { $dur = 0; }
-                return min($dur, 7200);
-            })->filter(function($dur) { return $dur > 0; });
-            
-            if ($sessionDurations->count() > 0) {
-                $retentionSeconds = $sessionDurations->average();
+            }
+
+            if (count($allVisits) > 0) {
+                $retentionSeconds = round(array_sum($allVisits) / count($allVisits));
             }
             $retentionFormatted = sprintf('%02d:%02d', floor($retentionSeconds / 60), $retentionSeconds % 60);
 
@@ -321,13 +357,16 @@ class DashboardController extends Controller
             'currency' => SystemConfig::getValue('currency', 'USD'),
         ];
 
+        // Estado operativo dinámico (auditoría automática basada en sesiones reales y análisis HTML)
+        $operationalStatus = app(IntegrationAuditService::class)->getOperationalStatus($selectedSite);
+
         return view('dashboard', compact(
             'events', 'sites', 'users', 'user', 'domains', 'selectedSite', 'weekNumber', 
             'frictionData', 'captureData', 'regionData', 'healthScore', 'healthReading', 
             'healthDetail', 'healthTrend', 'weeklyProgress', 'weeklyText', 'funnelData', 
             'funnelInsight', 'leadsCount', 'leadsTrendText', 'leadsTrendClass', 'leadsText', 
             'activityChart', 'nextDecisionTitle', 'nextDecisionText', 'topClickedContent',
-            'stripeConfigs', 'heatmapData'
+            'stripeConfigs', 'heatmapData', 'retentionFormatted', 'operationalStatus'
         ));
     }
 
@@ -434,5 +473,57 @@ class DashboardController extends Controller
         SystemConfig::setValue('currency', strtoupper(trim($request->currency)));
 
         return back()->with('success', 'Los parámetros de pago y suscripción se han actualizado exitosamente en la plataforma.');
+    }
+
+    /**
+     * Alternar el estado activo/desactivado de los cobros en base de datos (system_configs).
+     */
+    public function togglePayments(Request $request)
+    {
+        if (Auth::user()->role !== 'master') {
+            if ($request->ajax() || $request->wantsJson()) {
+                return response()->json(['error' => 'No autorizado'], 403);
+            }
+            return abort(403);
+        }
+
+        $isEnabled = $request->has('enabled')
+            ? $request->boolean('enabled')
+            : !SystemConfig::isStripeEnabled();
+
+        SystemConfig::setValue('payments_enabled', $isEnabled ? 'true' : 'false');
+
+        if ($request->ajax() || $request->wantsJson()) {
+            return response()->json([
+                'success' => true,
+                'enabled' => $isEnabled,
+                'status_text' => $isEnabled ? 'ACTIVO' : 'DESACTIVADO',
+                'message' => $isEnabled
+                    ? 'Cobros y suscripciones activados en la base de datos.'
+                    : 'Cobros desactivados en la base de datos (acceso libre a todos los usuarios).'
+            ]);
+        }
+
+        return back()->with('success', $isEnabled
+            ? 'Cobros y suscripciones activados exitosamente en la plataforma.'
+            : 'Cobros desactivados exitosamente en la plataforma (acceso libre).');
+    }
+
+    /**
+     * Endpoint API para consultar el estado operativo dinámico en formato JSON.
+     */
+    public function operationalStatus(Request $request, IntegrationAuditService $auditService)
+    {
+        $site = $request->get('site');
+        if (!$site) {
+            return response()->json(['error' => 'El parámetro site es requerido'], 400);
+        }
+
+        $status = $auditService->getOperationalStatus($site);
+
+        return response()->json([
+            'site' => $site,
+            'operationalStatus' => $status,
+        ]);
     }
 }

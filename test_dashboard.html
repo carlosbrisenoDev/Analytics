@@ -194,8 +194,8 @@
     .bar{height:10px;border-radius:999px;background:#262626;overflow:hidden;margin-top:16px; box-shadow: inset 0 1px 3px rgba(0,0,0,0.5);}
     .bar i{display:block;height:100%;background:var(--acid);border-radius:999px; transition: width 1s cubic-bezier(0.4, 0, 0.2, 1);}
 
-    .fake-chart{height:185px;display:flex;align-items:end;gap:10px;padding-top:20px}
-    .fake-chart i{width:100%; flex:none; background:linear-gradient(180deg, rgba(0,255,156,.95), rgba(0,255,156,.14));border-radius:10px 10px 0 0;min-height:22px; transition: height 0.5s ease;}
+    .fake-chart{height:185px;display:flex;align-items:stretch;gap:10px;padding-top:14px}
+    .fake-chart i{width:100%; flex:none; background:linear-gradient(180deg, rgba(0,255,156,.95), rgba(0,255,156,.14));border-radius:6px 6px 0 0;min-height:6px; transition: height 0.5s ease;}
     .fake-chart div:hover i { filter: brightness(1.2); }
 
     .heatmap{
@@ -411,7 +411,7 @@
         <div class="card">
           <div class="label">Actividad reciente</div>
           <h3 class="module-title">Tráfico diario de los últimos 7 días</h3>
-          <div class="fake-chart" style="align-items: flex-end; gap: 10px;">
+          <div class="fake-chart" style="align-items: stretch; gap: 10px;">
                                                         <div style="display:flex; flex-direction:column; align-items:center; flex:1; height:100%; justify-content:flex-end;">
                   <span style="font-size: 11px; font-family:monospace; color: var(--text); margin-bottom:4px;">0</span>
                   <i style="height:8%; width: 100%; background: linear-gradient(180deg, rgba(0,255,156,.95), rgba(0,255,156,.14)); border-radius: 6px 6px 0 0;" title="0 eventos"></i>
@@ -466,7 +466,7 @@
         <div class="card" style="grid-column:span 2">
           <div class="label">Captura de valor</div>
           <h3 class="module-title">Páginas con más tiempo de retención</h3>
-          <div class="fake-chart" style="align-items: flex-end; gap: 8px;">
+          <div class="fake-chart" style="align-items: stretch; gap: 8px;">
                                                     <p style="font-size: 12px; color: #666; align-self:center;">Sin datos de captura (tiempo en página) para mostrar.</p>
                       </div>
         </div>

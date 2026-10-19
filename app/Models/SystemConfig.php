@@ -24,6 +24,11 @@ class SystemConfig extends Model
             // Si hay error de conexión al consultar DB, seguir a .env
         }
 
+        // La activación de cobros se controla estrictamente desde la base de datos (system_configs)
+        if (in_array($key, ['payments_enabled', 'enabled'])) {
+            return $default ?? 'true';
+        }
+
         // Fallback hacia variable del .env (ej. STRIPE_PK, STRIPE_SUBSCRIPTION_AMOUNT)
         $envKey = 'STRIPE_' . strtoupper($key);
         $envValue = env($envKey);
@@ -41,8 +46,8 @@ class SystemConfig extends Model
 
     /**
      * Verifica si los pagos con Stripe y el paywall están activados.
-     * Prioriza la configuración en BD (claves 'payments_enabled' o 'enabled')
-     * y como fallback consulta las variables de entorno STRIPE_PAYMENTS_ENABLED o STRIPE_ENABLED.
+     * Lee de forma exclusiva la configuración en la base de datos MySQL (tabla system_configs, clave 'payments_enabled').
+     * Si no existe registro aún en base de datos, retorna true por defecto.
      */
     public static function isStripeEnabled(): bool
     {
@@ -52,18 +57,10 @@ class SystemConfig extends Model
                 return filter_var($config->value, FILTER_VALIDATE_BOOLEAN);
             }
         } catch (\Exception $e) {
-            // Fallback a config / env si falla la base de datos
+            // Manejo silencioso en caso de error temporal de BD
         }
 
-        $val = config('services.stripe.payments_enabled');
-        if ($val === null) {
-            $val = env('STRIPE_PAYMENTS_ENABLED');
-        }
-        if ($val === null) {
-            $val = env('STRIPE_ENABLED', true);
-        }
-
-        return filter_var($val, FILTER_VALIDATE_BOOLEAN);
+        return true;
     }
 
     /**

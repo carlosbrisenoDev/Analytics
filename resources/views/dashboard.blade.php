@@ -171,7 +171,7 @@
     .card > *{position:relative;z-index:1}
     .label{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.12em;margin-bottom:12px}
     .metric{font-family:ui-monospace, SFMono-Regular, Menlo, monospace;font-size:40px;font-weight:700;letter-spacing:-.06em}
-    .small{color:var(--muted);font-size:13px;line-height:1.45;letter-spacing:0}
+    .small{color:var(--muted);font-size:13px;line-height:1.45;letter-spacing:0;word-break:break-word}
     .trend{margin-top:14px;font-size:13px;color:var(--acid);font-family:ui-monospace, Menlo, monospace}
     .bad{color:var(--red)} .warn{color:var(--amber)} .blue{color:var(--blue)}
 
@@ -194,8 +194,8 @@
     .bar{height:10px;border-radius:999px;background:#262626;overflow:hidden;margin-top:16px; box-shadow: inset 0 1px 3px rgba(0,0,0,0.5);}
     .bar i{display:block;height:100%;background:var(--acid);border-radius:999px; transition: width 1s cubic-bezier(0.4, 0, 0.2, 1);}
 
-    .fake-chart{height:185px;display:flex;align-items:end;gap:10px;padding-top:20px}
-    .fake-chart i{width:100%; flex:none; background:linear-gradient(180deg, rgba(0,255,156,.95), rgba(0,255,156,.14));border-radius:10px 10px 0 0;min-height:22px; transition: height 0.5s ease;}
+    .fake-chart{height:185px;display:flex;align-items:stretch;gap:10px;padding-top:14px}
+    .fake-chart i{width:100%; flex:none; background:linear-gradient(180deg, rgba(0,255,156,.95), rgba(0,255,156,.14));border-radius:6px 6px 0 0;min-height:6px; transition: height 0.5s ease;}
     .fake-chart div:hover i { filter: brightness(1.2); }
 
     .heatmap{
@@ -241,6 +241,134 @@
     .form-group input, .form-group select { width: 100%; padding: 12px 14px; background: rgba(0,0,0,0.3); border: 1px solid var(--line); color: white; border-radius: 12px; font-family: inherit; font-size:14px; transition: all 0.2s; }
     .form-group input:focus, .form-group select:focus { outline: none; border-color: var(--acid); box-shadow: 0 0 0 3px rgba(0,255,156,0.15); background: rgba(0,0,0,0.5); }
 
+    /* Switch de Pagos en Base de Datos */
+    .payment-switch-card {
+      background: rgba(255,255,255,0.03);
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      padding: 16px 18px;
+      margin-bottom: 20px;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      position: relative;
+    }
+    .payment-switch-card.is-active {
+      border-color: rgba(0,255,156,0.35);
+      background: linear-gradient(135deg, rgba(0,255,156,0.06), rgba(255,255,255,0.02));
+      box-shadow: 0 0 24px rgba(0,255,156,0.06);
+    }
+    .payment-switch-card:not(.is-active) {
+      border-color: rgba(255,77,77,0.3);
+      background: linear-gradient(135deg, rgba(255,77,77,0.05), rgba(255,255,255,0.02));
+    }
+    .switch-content {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+    }
+    .switch-header { flex: 1; }
+    .switch-title {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 14px;
+      font-weight: 700;
+      color: var(--text);
+      margin-bottom: 4px;
+      flex-wrap: wrap;
+    }
+    .switch-desc { margin: 0; color: var(--muted); font-size: 12px; line-height: 1.4; }
+    
+    .status-indicator-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      display: inline-block;
+      transition: all 0.3s ease;
+      flex-shrink: 0;
+    }
+    .status-indicator-dot.active {
+      background: var(--acid);
+      box-shadow: 0 0 12px var(--acid);
+    }
+    .status-indicator-dot.inactive {
+      background: var(--red);
+      box-shadow: 0 0 12px var(--red);
+    }
+
+    .status-badge {
+      font-size: 10px;
+      font-family: ui-monospace, Menlo, monospace;
+      font-weight: 800;
+      letter-spacing: 0.08em;
+      padding: 3px 8px;
+      border-radius: 6px;
+      text-transform: uppercase;
+      transition: all 0.3s ease;
+    }
+    .status-badge.badge-active {
+      background: rgba(0,255,156,0.15);
+      color: var(--acid);
+      border: 1px solid rgba(0,255,156,0.4);
+    }
+    .status-badge.badge-inactive {
+      background: rgba(255,77,77,0.15);
+      color: var(--red);
+      border: 1px solid rgba(255,77,77,0.4);
+    }
+
+    /* Toggle Switch Button */
+    .modern-toggle {
+      position: relative;
+      display: inline-block;
+      width: 56px;
+      height: 30px;
+      flex-shrink: 0;
+      cursor: pointer;
+    }
+    .modern-toggle input {
+      opacity: 0;
+      width: 0;
+      height: 0;
+      position: absolute;
+    }
+    .toggle-slider {
+      position: absolute;
+      cursor: pointer;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background-color: #1e1e1e;
+      border: 1px solid #383838;
+      border-radius: 30px;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      box-shadow: inset 0 2px 4px rgba(0,0,0,0.5);
+    }
+    .toggle-slider:before {
+      position: absolute;
+      content: "";
+      height: 22px;
+      width: 22px;
+      left: 3px;
+      bottom: 3px;
+      background-color: #888;
+      border-radius: 50%;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      box-shadow: 0 2px 6px rgba(0,0,0,0.6);
+    }
+    .modern-toggle input:checked + .toggle-slider {
+      background-color: rgba(0,255,156,0.18);
+      border-color: var(--acid);
+      box-shadow: 0 0 16px rgba(0,255,156,0.25), inset 0 1px 3px rgba(0,0,0,0.4);
+    }
+    .modern-toggle input:checked + .toggle-slider:before {
+      transform: translateX(26px);
+      background-color: var(--acid);
+      box-shadow: 0 0 10px var(--acid), 0 2px 6px rgba(0,0,0,0.4);
+    }
+    .modern-toggle.is-loading {
+      opacity: 0.5;
+      pointer-events: none;
+    }
+
     footer{padding:18px 0 40px;color:#666;font-size:12px;letter-spacing:0; border-top: 1px solid var(--line); margin-top: 40px;}
 
     @media(max-width:980px){
@@ -258,12 +386,12 @@
     $views = 0;
     $clicks = 0;
     $conversionRate = 0;
-    $retentionFormatted = '00:00';
+    $retentionFormatted = $retentionFormatted ?? '00:00';
     
     if ($selectedSite) {
         $siteEvents = $events->where('site_name', $selectedSite);
         $views = $siteEvents->where('type', 'view')->count();
-        $clicks = $siteEvents->where('type', 'click')->count();
+        $clicks = $siteEvents->where('type', 'click')->where('content', '!=', 'heatmap_trace')->count();
         
         $ctaClicks = $siteEvents->where('type', 'cta_click')->count();
         if ($ctaClicks == 0) { // Fallback
@@ -276,30 +404,44 @@
             $conversionRate = ($ctaClicks / $views) * 100;
         }
 
-        // Calculate Retention (Average Time on Site by session)
-        $retentionSeconds = 0;
-        $sessionDurations = $siteEvents->whereNotNull('session_id')->groupBy('session_id')->map(function($eventsForSession) {
-            if ($eventsForSession->count() > 1) {
+        // Calculate Retention (Average Time on Site by session / continuous visit)
+        if (!isset($retentionFormatted) || $retentionFormatted === '00:00') {
+            $allVisits = [];
+            foreach ($siteEvents->whereNotNull('session_id')->groupBy('session_id') as $sessionId => $eventsForSession) {
                 $sorted = $eventsForSession->sortBy('created_at')->values();
-                $totalDiff = 0;
-                for ($i = 1; $i < $sorted->count(); $i++) {
-                    $diff = $sorted[$i - 1]->created_at->diffInSeconds($sorted[$i]->created_at);
-                    if ($diff < 1800) {
-                        $totalDiff += $diff;
+                if ($sorted->count() > 1) {
+                    $currentVisitStart = $sorted[0]->created_at;
+                    $currentVisitLast = $sorted[0]->created_at;
+
+                    for ($i = 1; $i < $sorted->count(); $i++) {
+                        $diff = $sorted[$i - 1]->created_at->diffInSeconds($sorted[$i]->created_at);
+                        if ($diff >= 1800) {
+                            $visitDuration = $currentVisitStart->diffInSeconds($currentVisitLast);
+                            if ($visitDuration > 0) {
+                                $allVisits[] = min($visitDuration, 1800);
+                            }
+                            $currentVisitStart = $sorted[$i]->created_at;
+                        }
+                        $currentVisitLast = $sorted[$i]->created_at;
+                    }
+                    $visitDuration = $currentVisitStart->diffInSeconds($currentVisitLast);
+                    if ($visitDuration > 0) {
+                        $allVisits[] = min($visitDuration, 1800);
+                    }
+                } elseif ($sorted->count() === 1) {
+                    $dur = $sorted[0]->duration ?? 0;
+                    if ($dur > 1800 && ($dur / 1000) <= 1800) {
+                        $dur = round($dur / 1000);
+                    }
+                    if ($dur > 0) {
+                        $allVisits[] = min($dur, 1800);
                     }
                 }
-                return min($totalDiff, 7200);
             }
-            $dur = $eventsForSession->avg('duration') ?? 0;
-            if ($dur > 86400) { $dur = $dur / 1000; }
-            if ($dur > 86400) { $dur = 0; }
-            return min($dur, 7200);
-        })->filter(function($dur) { return $dur > 0; });
-        
-        if ($sessionDurations->count() > 0) {
-            $retentionSeconds = $sessionDurations->average();
+
+            $retentionSeconds = count($allVisits) > 0 ? round(array_sum($allVisits) / count($allVisits)) : 0;
+            $retentionFormatted = sprintf('%02d:%02d', floor($retentionSeconds / 60), $retentionSeconds % 60);
         }
-        $retentionFormatted = sprintf('%02d:%02d', floor($retentionSeconds / 60), $retentionSeconds % 60);
     }
   @endphp
 
@@ -321,7 +463,7 @@
         <a href="#sistema">Sistema técnico <span>06</span></a>
         @if($user->role === 'master')
         <a href="#admin" style="margin-top: 15px; border: 1px dashed var(--line);">Admin <span>07</span></a>
-        <a href="#stripe-settings" style="border: 1px dashed var(--line); border-top: none;">Cobros Stripe <span style="{{ ($stripeConfigs['enabled'] ?? true) ? '' : 'color: #f87171;' }}">{{ ($stripeConfigs['enabled'] ?? true) ? '08' : 'OFF' }}</span></a>
+        <a href="#stripe-settings" style="border: 1px dashed var(--line); border-top: none;">Cobros Stripe <span id="navStripeBadge" style="{{ ($stripeConfigs['enabled'] ?? true) ? '' : 'color: #f87171;' }}">{{ ($stripeConfigs['enabled'] ?? true) ? '08' : 'OFF' }}</span></a>
         @endif
       </nav>
       <div class="aside-card">
@@ -480,7 +622,7 @@
           <div class="label">Fricción</div>
           <h3 class="module-title">Lugares donde la marca falla</h3>
           @if($selectedSite && count($frictionData) > 0)
-              @foreach($frictionData as $alert)
+              @foreach(array_slice($frictionData, 0, 3) as $alert)
               <div class="alert"><span class="dot {{ $alert['type'] == 'danger' ? 'red' : 'amber' }}"></span><p class="small">{{ $alert['message'] }}</p></div>
               @endforeach
           @else
@@ -505,7 +647,7 @@
         <div class="card">
           <div class="label">Actividad reciente</div>
           <h3 class="module-title">Tráfico diario de los últimos 7 días</h3>
-          <div class="fake-chart" style="align-items: flex-end; gap: 10px;">
+          <div class="fake-chart" style="align-items: stretch; gap: 10px;">
             @php
                 $maxDaily = count($activityChart) > 0 ? max($activityChart) : 1;
                 if ($maxDaily == 0) $maxDaily = 1;
@@ -515,10 +657,12 @@
                     $hPercent = round(($dCount / $maxDaily) * 100);
                     if ($hPercent < 8) $hPercent = 8;
                 @endphp
-                <div style="display:flex; flex-direction:column; align-items:center; flex:1; height:100%; justify-content:flex-end;">
-                  <span style="font-size: 11px; font-family:monospace; color: var(--text); margin-bottom:4px;">{{ $dCount }}</span>
-                  <i style="height:{{ $hPercent }}%; width: 100%; background: linear-gradient(180deg, rgba(0,255,156,.95), rgba(0,255,156,.14)); border-radius: 6px 6px 0 0;" title="{{ $dCount }} eventos"></i>
-                  <span style="font-size: 10px; color: #666; margin-top:4px;">{{ $dLabel }}</span>
+                <div style="display:flex; flex-direction:column; align-items:center; flex:1; min-width:0; height:100%; justify-content:flex-end;">
+                  <span style="font-size: 11px; font-family:monospace; color: var(--text); margin-bottom:6px; white-space:nowrap; flex-shrink:0;">{{ $dCount }}</span>
+                  <div style="flex:1; width:100%; display:flex; align-items:flex-end; justify-content:center; min-height:0;">
+                    <i style="height:{{ $hPercent }}%; width: 100%; background: linear-gradient(180deg, rgba(0,255,156,.95), rgba(0,255,156,.14)); border-radius: 6px 6px 0 0;" title="{{ $dCount }} eventos"></i>
+                  </div>
+                  <span style="font-size: 10px; color: #666; margin-top:6px; text-overflow:ellipsis; overflow:hidden; white-space:nowrap; max-width:100%; flex-shrink:0; text-align:center;">{{ $dLabel }}</span>
                 </div>
             @endforeach
             @if(empty($activityChart))
@@ -543,7 +687,7 @@
         <div class="card" style="grid-column:span 2">
           <div class="label">Captura de valor</div>
           <h3 class="module-title">Páginas con más tiempo de retención</h3>
-          <div class="fake-chart" style="align-items: flex-end; gap: 8px;">
+          <div class="fake-chart" style="align-items: stretch; gap: 8px;">
             @php
                 $maxDuration = count($captureData) > 0 ? max($captureData) : 1;
                 if ($maxDuration == 0) $maxDuration = 1;
@@ -553,10 +697,20 @@
                     $heightPercent = ($duration / $maxDuration) * 100;
                     if ($heightPercent < 5) $heightPercent = 5;
                 @endphp
-                <div style="display:flex; flex-direction:column; align-items:center; width: 100%; height:100%; justify-content:flex-end;">
-                  <span style="font-size: 10px; color: var(--text); margin-bottom:4px;">{{ round($duration) }}s</span>
-                  <i style="height:{{ $heightPercent }}%; width: 100%; background: var(--acid); border-radius: 4px 4px 0 0;" title="{{ $page }}"></i>
-                  <span style="font-size: 9px; color: #666; margin-top:4px; text-overflow:ellipsis; overflow:hidden; white-space:nowrap; max-width: 100%;">{{ substr(basename(parse_url($page, PHP_URL_PATH) ?? $page), 0, 10) ?: 'home' }}</span>
+                <div style="display:flex; flex-direction:column; align-items:center; flex:1; min-width:0; height:100%; justify-content:flex-end;">
+                  <span style="font-size: 10px; color: var(--text); margin-bottom:6px; white-space:nowrap; flex-shrink:0;">
+                    @if($duration >= 3600)
+                      {{ floor($duration / 3600) }}h {{ floor(($duration % 3600) / 60) }}m
+                    @elseif($duration >= 60)
+                      {{ floor($duration / 60) }}m {{ round($duration % 60) }}s
+                    @else
+                      {{ round($duration) }}s
+                    @endif
+                  </span>
+                  <div style="flex:1; width:100%; display:flex; align-items:flex-end; justify-content:center; min-height:0;">
+                    <i style="height:{{ $heightPercent }}%; width: 100%; background: var(--acid); border-radius: 4px 4px 0 0;" title="{{ $page }}"></i>
+                  </div>
+                  <span style="font-size: 9px; color: #666; margin-top:6px; text-overflow:ellipsis; overflow:hidden; white-space:nowrap; max-width: 100%; flex-shrink:0; text-align:center;" title="{{ $page }}">{{ substr(basename(parse_url($page, PHP_URL_PATH) ?? $page), 0, 10) ?: 'home' }}</span>
                 </div>
             @endforeach
             @if(empty($captureData))
@@ -577,11 +731,44 @@
           <div class="label">Sistema técnico</div>
           <h3 class="module-title">Estado operativo</h3>
           <table class="table">
-            <tr><td>GA4 / Tag Manager</td><td>activo</td></tr>
-            <tr><td>Meta Pixel</td><td>activo</td></tr>
-            <tr><td>Search Console</td><td>verificado</td></tr>
-            <tr><td>Schema.org</td><td>parcial</td></tr>
-            <tr><td>PageSpeed móvil</td><td>82/100</td></tr>
+            @forelse($operationalStatus ?? [] as $item)
+            <tr>
+              <td>
+                {{ $item['name'] }}
+                @if(isset($item['types']) && !empty($item['types']))
+                  <br><span style="font-size:10px; color:var(--muted);">Tipos: {{ implode(', ', array_slice($item['types'], 0, 3)) }}</span>
+                @endif
+              </td>
+              <td>
+                @if(($item['status'] ?? '') === 'pagespeed')
+                  <span class="blue" style="font-weight:600;">{{ $item['status_label'] ?? '--/100' }}</span>
+                @elseif(($item['status'] ?? '') === 'active')
+                  <span style="color:var(--acid); font-weight:600;">{{ $item['status_label'] ?? 'activo' }}</span>
+                  @if(isset($item['pages_detected']) && isset($item['pages_checked']) && $item['pages_checked'] > 0)
+                    <small style="color:var(--muted); font-size:11px; font-family:monospace;">({{ $item['pages_detected'] }}/{{ $item['pages_checked'] }})</small>
+                  @endif
+                @elseif(($item['status'] ?? '') === 'partial')
+                  <span class="warn" style="font-weight:600;">{{ $item['status_label'] ?? 'parcial' }}</span>
+                  @if(isset($item['pages_detected']) && isset($item['pages_checked']) && $item['pages_checked'] > 0)
+                    <small style="color:var(--muted); font-size:11px; font-family:monospace;">({{ $item['pages_detected'] }}/{{ $item['pages_checked'] }})</small>
+                  @endif
+                @elseif(($item['status'] ?? '') === 'unverifiable')
+                  <span class="blue" style="font-weight:600; font-size:12px;">{{ $item['status_label'] ?? 'no verificado en HTML' }}</span>
+                @else
+                  <span class="bad" style="font-weight:600;">{{ $item['status_label'] ?? 'no detectado' }}</span>
+                  @if(isset($item['pages_detected']) && isset($item['pages_checked']) && $item['pages_checked'] > 0)
+                    <small style="color:var(--muted); font-size:11px; font-family:monospace;">(0/{{ $item['pages_checked'] }})</small>
+                  @endif
+                @endif
+              </td>
+            </tr>
+            @empty
+            <tr>
+              <td colspan="2" style="text-align:center; padding: 20px; font-style: italic;">
+                Esperando captura de datos para auditar integraciones...
+              </td>
+            </tr>
+            @endforelse
           </table>
         </div>
         <div class="card">
@@ -705,19 +892,43 @@
         <div class="card">
           <div class="label">Cobros por Suscripción (Master)</div>
           <h3 class="module-title">Configurar Precios y Moneda</h3>
-          <p class="small" style="margin-bottom: 15px;">Establece el costo mensual de suscripción exigido a clientes y colaboradores para ingresar a su tablero ejecutivo. Las credenciales registradas aquí tendrán prioridad absoluta en el sistema.</p>
+          <p class="small" style="margin-bottom: 18px;">Establece el costo mensual de suscripción exigido a clientes y colaboradores para ingresar a su tablero ejecutivo. Las credenciales y estado guardados aquí se almacenan directamente en la base de datos (<code>system_configs</code>).</p>
+          
+          <!-- Botón Switch Interactivo para Activar/Desactivar Pagos en BD -->
+          <div class="payment-switch-card {{ ($stripeConfigs['enabled'] ?? true) ? 'is-active' : '' }}" id="paymentSwitchCard">
+            <div class="switch-content">
+              <div class="switch-header">
+                <div class="switch-title">
+                  <span class="status-indicator-dot {{ ($stripeConfigs['enabled'] ?? true) ? 'active' : 'inactive' }}" id="switchStatusDot"></span>
+                  <span>Pasarela de Pagos y Suscripción</span>
+                  <span class="status-badge {{ ($stripeConfigs['enabled'] ?? true) ? 'badge-active' : 'badge-inactive' }}" id="switchStatusBadge">
+                    {{ ($stripeConfigs['enabled'] ?? true) ? 'ACTIVO' : 'DESACTIVADO' }}
+                  </span>
+                </div>
+                <p class="small switch-desc" id="switchStatusDesc">
+                  @if($stripeConfigs['enabled'] ?? true)
+                    Cobros <strong style="color:var(--acid);">habilitados</strong> en base de datos. Los usuarios que agoten su prueba gratuita requerirán suscripción para ingresar.
+                  @else
+                    Cobros <strong style="color:var(--red);">desactivados</strong> en base de datos. Acceso libre concedido a todos los usuarios sin muro de pago.
+                  @endif
+                </p>
+              </div>
+
+              <div class="switch-control-area">
+                <label class="modern-toggle" title="Haga clic para alternar el estado en la base de datos">
+                  <input type="checkbox" id="paymentsToggleSwitch" {{ ($stripeConfigs['enabled'] ?? true) ? 'checked' : '' }}>
+                  <span class="toggle-slider"></span>
+                </label>
+              </div>
+            </div>
+            <div id="switchToastMessage" style="display:none; margin-top:12px; font-size:12px; font-family:ui-monospace, Menlo, monospace; padding:8px 12px; border-radius:8px;"></div>
+          </div>
+
           <form action="{{ route('admin.stripe.save') }}" method="POST">
             @csrf
             <input type="hidden" name="payments_enabled_present" value="1">
-            <div class="form-group" style="margin-bottom: 16px; padding: 12px; background: rgba(255,255,255,0.03); border: 1px solid var(--line); border-radius: 8px;">
-                <label style="display: flex; align-items: center; gap: 10px; cursor: pointer; font-weight: 600; margin: 0;">
-                    <input type="checkbox" name="payments_enabled" value="1" {{ ($stripeConfigs['enabled'] ?? true) ? 'checked' : '' }} style="width: 18px; height: 18px; accent-color: var(--acid); cursor: pointer;">
-                    <span>Habilitar cobros y suscripciones con Stripe</span>
-                </label>
-                <p class="small" style="margin: 6px 0 0 28px; color: var(--text-dim);">
-                    Variable en <code>.env</code>: <code>STRIPE_PAYMENTS_ENABLED={{ ($stripeConfigs['enabled'] ?? true) ? 'true' : 'false' }}</code>. Si se desactiva, los usuarios (editor/viewer) tendrán acceso directo sin requerir suscripción ni pasar por el muro de pago.
-                </p>
-            </div>
+            <input type="hidden" name="payments_enabled" id="hiddenPaymentsEnabled" value="{{ ($stripeConfigs['enabled'] ?? true) ? '1' : '0' }}">
+            
             <div style="display:flex;gap:12px;">
               <div class="form-group" style="flex:2;">
                 <label>Precio Mensual ($)</label>
@@ -755,11 +966,13 @@
               <div style="font-size:12px;font-weight:600;margin-bottom:4px;color:var(--acid);">ESTATUS ACTUAL DE LA PLATAFORMA DE COBROS:</div>
               <ul style="font-size:12px;margin:0;padding-left:16px;color:#eee;line-height:1.8;">
                 <li><strong>Estado de Cobros:</strong> 
-                  @if($stripeConfigs['enabled'] ?? true)
-                    <span style="color:var(--acid);font-weight:bold;">● ACTIVO (Muro de pago y suscripciones habilitadas)</span>
-                  @else
-                    <span style="color:#f87171;font-weight:bold;">○ DESACTIVADO (Acceso libre a todos los usuarios)</span>
-                  @endif
+                  <span id="summaryPaymentStatus">
+                    @if($stripeConfigs['enabled'] ?? true)
+                      <span style="color:var(--acid);font-weight:bold;">● ACTIVO (Muro de pago y suscripciones habilitadas)</span>
+                    @else
+                      <span style="color:#f87171;font-weight:bold;">○ DESACTIVADO (Acceso libre a todos los usuarios)</span>
+                    @endif
+                  </span>
                 </li>
                 <li><strong>Plan Configurado:</strong> ${{ $stripeConfigs['subscription_amount'] ?? '29.99' }} {{ strtoupper($stripeConfigs['currency'] ?? 'USD') }} / mes</li>
                 <li><strong>Periodo de Prueba:</strong> <span style="color:var(--acid);font-weight:bold;">60 días (2 meses gratis) activados automáticamente</span></li>
@@ -769,7 +982,7 @@
               </ul>
             </div>
             <p class="small" style="margin-top:15px;color:var(--blue);">
-              💡 <strong>Control en tiempo real:</strong> Puedes activar o desactivar los cobros con la variable <code>STRIPE_PAYMENTS_ENABLED</code> en tu archivo <code>.env</code> o directamente desde este panel.
+              💡 <strong>Control desde Base de Datos:</strong> Puedes activar o desactivar los cobros al instante usando el botón switch interactivo. El valor se sincroniza en tiempo real en la tabla <code>system_configs</code> sin reiniciar servidores ni modificar variables de entorno.
             </p>
           </div>
         </div>
@@ -790,6 +1003,11 @@
         var container = document.getElementById('user-heatmap-container');
         
         if (heatmapData.length > 0 && container) {
+            if (typeof h337 === 'undefined') {
+                console.warn('[Analytics Dashboard] La librería heatmap.js no se cargó correctamente (posible bloqueo por AdBlocker o CSP).');
+                return;
+            }
+
             // Remove fallback mockup elements if they exist
             container.innerHTML = '';
             
@@ -841,6 +1059,108 @@
 
             var finalData = Object.values(grouped);
             heatmapInstance.setData({ max: maxVal, data: finalData });
+        }
+
+        // Manejador interactivo para el botón switch de pagos en BD (system_configs)
+        var toggleSwitch = document.getElementById('paymentsToggleSwitch');
+        var hiddenInput = document.getElementById('hiddenPaymentsEnabled');
+        var switchCard = document.getElementById('paymentSwitchCard');
+        var statusDot = document.getElementById('switchStatusDot');
+        var statusBadge = document.getElementById('switchStatusBadge');
+        var statusDesc = document.getElementById('switchStatusDesc');
+        var toastMsg = document.getElementById('switchToastMessage');
+        var summaryStatus = document.getElementById('summaryPaymentStatus');
+        var navBadge = document.getElementById('navStripeBadge');
+
+        if (toggleSwitch) {
+            toggleSwitch.addEventListener('change', function() {
+                var isEnabled = this.checked;
+                var toggleContainer = this.closest('.modern-toggle');
+                if (toggleContainer) toggleContainer.classList.add('is-loading');
+
+                if (hiddenInput) {
+                    hiddenInput.value = isEnabled ? '1' : '0';
+                }
+
+                fetch("{{ route('admin.payments.toggle') }}", {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json',
+                        'X-CSRF-TOKEN': "{{ csrf_token() }}"
+                    },
+                    body: JSON.stringify({
+                        enabled: isEnabled
+                    })
+                })
+                .then(function(res) {
+                    if (!res.ok) throw new Error('Error en el servidor (' + res.status + ')');
+                    return res.json();
+                })
+                .then(function(data) {
+                    if (data.success) {
+                        applySwitchUi(isEnabled);
+                        displayToast(data.message, true);
+                    } else {
+                        throw new Error(data.message || 'No se pudo guardar la configuración');
+                    }
+                })
+                .catch(function(err) {
+                    console.error('Error al actualizar estado de cobros:', err);
+                    // Revertir switch
+                    toggleSwitch.checked = !isEnabled;
+                    if (hiddenInput) hiddenInput.value = (!isEnabled) ? '1' : '0';
+                    applySwitchUi(!isEnabled);
+                    displayToast('No se pudo actualizar en BD: ' + err.message, false);
+                })
+                .finally(function() {
+                    if (toggleContainer) toggleContainer.classList.remove('is-loading');
+                });
+            });
+        }
+
+        function applySwitchUi(enabled) {
+            if (switchCard) {
+                if (enabled) {
+                    switchCard.classList.add('is-active');
+                } else {
+                    switchCard.classList.remove('is-active');
+                }
+            }
+            if (statusDot) {
+                statusDot.className = 'status-indicator-dot ' + (enabled ? 'active' : 'inactive');
+            }
+            if (statusBadge) {
+                statusBadge.className = 'status-badge ' + (enabled ? 'badge-active' : 'badge-inactive');
+                statusBadge.textContent = enabled ? 'ACTIVO' : 'DESACTIVADO';
+            }
+            if (statusDesc) {
+                statusDesc.innerHTML = enabled
+                    ? 'Cobros <strong style="color:var(--acid);">habilitados</strong> en base de datos. Los usuarios que agoten su prueba gratuita requerirán suscripción para ingresar.'
+                    : 'Cobros <strong style="color:var(--red);">desactivados</strong> en base de datos. Acceso libre concedido a todos los usuarios sin muro de pago.';
+            }
+            if (summaryStatus) {
+                summaryStatus.innerHTML = enabled
+                    ? '<span style="color:var(--acid);font-weight:bold;">● ACTIVO (Muro de pago y suscripciones habilitadas)</span>'
+                    : '<span style="color:#f87171;font-weight:bold;">○ DESACTIVADO (Acceso libre a todos los usuarios)</span>';
+            }
+            if (navBadge) {
+                navBadge.textContent = enabled ? '08' : 'OFF';
+                navBadge.style.color = enabled ? '' : '#f87171';
+            }
+        }
+
+        function displayToast(msg, isSuccess) {
+            if (!toastMsg) return;
+            toastMsg.style.display = 'block';
+            toastMsg.style.background = isSuccess ? 'rgba(0,255,156,0.1)' : 'rgba(255,77,77,0.1)';
+            toastMsg.style.border = '1px solid ' + (isSuccess ? 'rgba(0,255,156,0.3)' : 'rgba(255,77,77,0.3)');
+            toastMsg.style.color = isSuccess ? 'var(--acid)' : 'var(--red)';
+            toastMsg.textContent = (isSuccess ? '✓ ' : '✗ ') + msg;
+
+            setTimeout(function() {
+                toastMsg.style.display = 'none';
+            }, 5000);
         }
     });
   </script>

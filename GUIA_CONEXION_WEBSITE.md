@@ -127,28 +127,33 @@ Inserta este bloque dentro del `<head>` o justo antes de cerrar el `</body>`.
     const ub_startTime = Date.now();
 
     // 3. Función global de despacho de eventos
-    window.trackUnlockEvent = function(eventType, content = window.location.pathname) {
+    window.trackUnlockEvent = function(eventType, content = window.location.pathname, x = null, y = null) {
       const duration = Math.floor((Date.now() - ub_startTime) / 1000);
-      const payload = JSON.stringify({
+      const payloadObj = {
         site_name: SITE_ID,
         type: eventType,
         session_id: ub_session,
         region: ub_region,
         duration: duration,
         content: content
-      });
+      };
 
-      // Envío ultraligero sin bloquear la navegación
-      if (navigator.sendBeacon) {
-        const blob = new Blob([payload], { type: 'application/json' });
-        navigator.sendBeacon(API_URL, blob);
-      } else {
+      if (x !== null && x !== undefined && !isNaN(x)) payloadObj.x_coord = Math.round(x);
+      if (y !== null && y !== undefined && !isNaN(y)) payloadObj.y_coord = Math.round(y);
+
+      const payload = JSON.stringify(payloadObj);
+
+      // Envío ultraligero
+      if (typeof fetch !== 'undefined') {
         fetch(API_URL, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: payload,
           keepalive: true
         }).catch(err => console.warn('[Analytics Error]', err));
+      } else if (navigator.sendBeacon) {
+        const blob = new Blob([payload], { type: 'application/json' });
+        navigator.sendBeacon(API_URL, blob);
       }
     };
 
@@ -159,7 +164,49 @@ Inserta este bloque dentro del `<head>` o justo antes de cerrar el `</body>`.
       trackUnlockEvent('view', window.location.pathname);
     }
 
-    // 5. Heartbeat al salir o cambiar de pestaña (mide retención real)
+    // 5. Heatmap Tracking (Coordenadas de calor de cursor y pantalla táctil)
+    let mousePositions = [];
+    let currentX = null;
+    let currentY = null;
+    let hasActivity = false;
+
+    document.addEventListener('mousemove', (e) => {
+      currentX = e.pageX;
+      currentY = e.pageY;
+      hasActivity = true;
+    }, { passive: true });
+
+    document.addEventListener('touchmove', (e) => {
+      if (e.touches && e.touches[0]) {
+        currentX = e.touches[0].pageX;
+        currentY = e.touches[0].pageY;
+        hasActivity = true;
+      }
+    }, { passive: true });
+
+    // Guardar muestra cada 500ms si el usuario interactuó
+    setInterval(() => {
+      if (document.visibilityState !== 'hidden' && hasActivity && currentX !== null && currentY !== null) {
+        mousePositions.push({ x: currentX, y: currentY });
+        hasActivity = false;
+        if (mousePositions.length > 20) mousePositions = mousePositions.slice(-20);
+      }
+    }, 500);
+
+    // Enviar ráfaga de coordenadas heatmap_trace cada 5 segundos
+    setInterval(() => {
+      if (document.visibilityState !== 'hidden' && mousePositions.length > 0) {
+        const positionsToSend = [...mousePositions];
+        mousePositions = [];
+        positionsToSend.forEach((pos, index) => {
+          setTimeout(() => {
+            trackUnlockEvent('click', 'heatmap_trace', pos.x, pos.y);
+          }, index * 50);
+        });
+      }
+    }, 5000);
+
+    // 6. Heartbeat al salir o cambiar de pestaña (mide retención real)
     window.addEventListener('visibilitychange', () => {
       if (document.visibilityState === 'hidden') {
         trackUnlockEvent('view', window.location.pathname);
@@ -229,12 +276,24 @@ Para que el embudo y las tarjetas del Dashboard se alimenten correctamente, aña
 
 ### En React / Vite (`src/analytics.ts`):
 ```typescript
-const API_URL = 'https://TU_DOMINIO_DASHBOARD.com/api/track';
-const SITE_ID = 'mi-nuevo-sitio.com';
+import { useEffect, useRef } from 'react';
+import { useLocation } from 'react-router-dom';
+
+const API_URL = import.meta.env.VITE_ANALYTICS_API_URL || 'https://TU_DOMINIO_DASHBOARD.com/api/track';
+const SITE_ID = import.meta.env.VITE_ANALYTICS_SITE_ID || 'mi-nuevo-sitio.com';
+
+const ub_startTime = Date.now();
+let mousePositions: Array<{ x: number; y: number }> = [];
+let currentX: number | null = null;
+let currentY: number | null = null;
+let hasActivity = false;
+let isHeatmapInitialized = false;
 
 export const trackEvent = (
   type: 'view' | 'click' | 'cta_click' | 'form_start' | 'form_submit' | 'external_link' | 'download',
-  content: string = window.location.pathname
+  content: string = window.location.pathname,
+  xCoord?: number | null,
+  yCoord?: number | null
 ) => {
   let sessionId = localStorage.getItem('ub_session');
   if (!sessionId) {
@@ -242,40 +301,83 @@ export const trackEvent = (
     localStorage.setItem('ub_session', sessionId);
   }
 
-  const payload = JSON.stringify({
+  const duration = Math.floor((Date.now() - ub_startTime) / 1000);
+  const payloadObj: Record<string, unknown> = {
     site_name: SITE_ID,
     type,
     session_id: sessionId,
     region: Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC',
-    duration: 0,
+    duration,
     content
-  });
+  };
 
-  if (navigator.sendBeacon) {
-    navigator.sendBeacon(API_URL, new Blob([payload], { type: 'application/json' }));
-  } else {
-    fetch(API_URL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: payload,
-      keepalive: true
-    }).catch(() => {});
-  }
+  const resX = xCoord !== undefined && xCoord !== null ? xCoord : (type === 'click' ? currentX : null);
+  const resY = yCoord !== undefined && yCoord !== null ? yCoord : (type === 'click' ? currentY : null);
+  if (resX !== null && !isNaN(resX)) payloadObj.x_coord = Math.round(resX);
+  if (resY !== null && !isNaN(resY)) payloadObj.y_coord = Math.round(resY);
+
+  fetch(API_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payloadObj),
+    keepalive: true
+  }).catch(() => {});
 };
-```
+
+export const initHeatmapTracking = () => {
+  if (typeof window === 'undefined' || isHeatmapInitialized) return;
+  isHeatmapInitialized = true;
+
+  document.addEventListener('mousemove', (e) => {
+    currentX = e.pageX;
+    currentY = e.pageY;
+    hasActivity = true;
+  }, { passive: true });
+
+  document.addEventListener('touchmove', (e) => {
+    if (e.touches && e.touches[0]) {
+      currentX = e.touches[0].pageX;
+      currentY = e.touches[0].pageY;
+      hasActivity = true;
+    }
+  }, { passive: true });
+
+  setInterval(() => {
+    if (document.visibilityState !== 'hidden' && hasActivity && currentX !== null && currentY !== null) {
+      mousePositions.push({ x: currentX, y: currentY });
+      hasActivity = false;
+      if (mousePositions.length > 20) mousePositions = mousePositions.slice(-20);
+    }
+  }, 500);
+
+  setInterval(() => {
+    if (document.visibilityState !== 'hidden' && mousePositions.length > 0) {
+      const positionsToSend = [...mousePositions];
+      mousePositions = [];
+      positionsToSend.forEach((pos, idx) => {
+        setTimeout(() => {
+          trackEvent('click', 'heatmap_trace', pos.x, pos.y);
+        }, idx * 50);
+      });
+    }
+  }, 5000);
+};
+
+if (typeof window !== 'undefined') {
+  initHeatmapTracking();
+}
 
 ### Hook para cambios de ruta (React Router):
 ```tsx
-import { useEffect } from 'react';
-import { useLocation } from 'react-router-dom';
-import { trackEvent } from './analytics';
-
 export const usePageTracking = () => {
   const location = useLocation();
 
   useEffect(() => {
+    initHeatmapTracking();
     trackEvent('view', location.pathname + location.search);
-  }, [location]);
+  }, [location.pathname, location.search]);
+};
+```
 };
 ```
 

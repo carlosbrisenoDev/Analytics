@@ -75,4 +75,33 @@ CREATE TABLE `system_configs` (
   UNIQUE KEY `system_configs_key_unique` (`key`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+INSERT INTO `system_configs` (`key`, `value`, `created_at`, `updated_at`)
+VALUES ('payments_enabled', 'true', NOW(), NOW());
+
+--
+-- Estructura de tabla para la tabla `page_analyses`
+--
+CREATE TABLE `page_analyses` (
+  `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT,
+  `site_name` varchar(255) NOT NULL,
+  `url` varchar(2048) NOT NULL,
+  `path` varchar(255) NOT NULL,
+  `http_status` smallint UNSIGNED DEFAULT NULL,
+  `has_ga4` tinyint(1) NOT NULL DEFAULT 0,
+  `has_gtm` tinyint(1) NOT NULL DEFAULT 0,
+  `has_meta_pixel` tinyint(1) NOT NULL DEFAULT 0,
+  `has_search_console` tinyint(1) NOT NULL DEFAULT 0,
+  `has_schema_org` tinyint(1) NOT NULL DEFAULT 0,
+  `schema_org_types` text DEFAULT NULL,
+  `detection_details` json DEFAULT NULL,
+  `fetch_error` varchar(500) DEFAULT NULL,
+  `analyzed_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `created_at` timestamp NULL DEFAULT NULL,
+  `updated_at` timestamp NULL DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  INDEX `page_analyses_site_name_index` (`site_name`),
+  INDEX `page_analyses_analyzed_at_index` (`analyzed_at`),
+  UNIQUE KEY `page_analyses_site_path_unique` (`site_name`, `path`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 COMMIT;

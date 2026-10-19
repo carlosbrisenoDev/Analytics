@@ -37,6 +37,9 @@ Route::middleware(['auth'])->group(function () {
 
     // Ruta de guardado para configuración de Stripe en la BD MySQL
     Route::post('/admin/stripe-config', [DashboardController::class, 'saveStripeConfig'])->name('admin.stripe.save');
+    
+    // Ruta de alternancia rápida (switch) para pagos de Stripe en la BD MySQL
+    Route::post('/admin/payments-toggle', [DashboardController::class, 'togglePayments'])->name('admin.payments.toggle');
 });
 Route::get('/test-dashboard', function () {
     Auth::loginUsingId(1);

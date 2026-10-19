@@ -35,10 +35,10 @@ graph TD
 
 El sistema cuenta con un muro de pago (Paywall) integrado con Stripe para usuarios con rol `Editor` y `Viewer`:
 
-- **Activación / Desactivación Global:** Se controla mediante la variable de entorno `STRIPE_PAYMENTS_ENABLED` en el archivo `.env`:
-  - `STRIPE_PAYMENTS_ENABLED=true`: Activa el flujo de suscripción y prueba gratuita. Los usuarios no administradores deben tener suscripción activa tras su periodo de prueba.
-  - `STRIPE_PAYMENTS_ENABLED=false`: Desactiva completamente los cobros. Todos los usuarios (Master, Editor y Viewer) tienen acceso libre y directo al dashboard sin pasar por la pasarela de Stripe.
-- **Configuración Dinámica:** El rol `Master` también puede activar o desactivar los cobros y actualizar montos/claves directamente desde la sección **Cobros Stripe (08)** en el dashboard.
+- **Activación / Desactivación Global (Base de Datos):** Se controla dinámicamente mediante la configuración en base de datos (tabla `system_configs`, clave `payments_enabled`) y un botón switch interactivo en el dashboard accesible por usuarios `Master`:
+  - **Activo (`payments_enabled=true`):** Activa el flujo de suscripción y prueba gratuita (60 días). Los usuarios no administradores deben contar con suscripción activa tras expirar su periodo de prueba.
+  - **Desactivado (`payments_enabled=false`):** Desactiva completamente los cobros y el paywall. Todos los usuarios (`Master`, `Editor` y `Viewer`) tienen acceso libre y directo al dashboard sin pasar por la pasarela de Stripe.
+- **Control en Tiempo Real:** El administrador `Master` puede alternar el botón switch en la sección **Cobros Stripe (08)** en el dashboard para cambiar el estado al instante, o actualizar precios, monedas y credenciales.
 
 ## Usuario Inicial por Defecto
 

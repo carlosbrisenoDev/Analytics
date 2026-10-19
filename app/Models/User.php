@@ -44,7 +44,7 @@ class User extends Authenticatable
             return true;
         }
 
-        // Si los cobros de Stripe están desactivados (.env: STRIPE_PAYMENTS_ENABLED=false)
+        // Si los cobros de Stripe están desactivados en base de datos (system_configs: payments_enabled=false)
         if (!SystemConfig::isStripeEnabled()) {
             return true;
         }
